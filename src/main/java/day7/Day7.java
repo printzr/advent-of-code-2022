@@ -1,3 +1,5 @@
+package day7;
+
 import utils.FileUtils;
 
 import java.util.*;
@@ -5,7 +7,7 @@ import java.util.*;
 public class Day7 {
     private static String INPUT_FILENAME = "/input/day7_input.txt";
 
-    public static void main(String[] args) throws Exception {
+    public String runChallenge(String inputFilename) throws Exception {
         File topDirectory = File.createDirectory("/", null);
         File currentDirectory = topDirectory;
         int lineCount = 0;
@@ -75,7 +77,7 @@ public class Day7 {
         //Needed: 30000000
         int sizeNeeded = 30000000 - (70000000-topDirectory.getSize());
         System.out.println("sizeNeeded = " + sizeNeeded);
-        
+
         List<File> allFolders = getAllFolders(topDirectory.files);
         System.out.println("allFolders.size() = " + allFolders.size());
         Collections.sort(allFolders, Comparator.comparing(File::getSize));
@@ -86,6 +88,11 @@ public class Day7 {
         System.out.println("dirToDelete = " + dirToDelete);
         System.out.println("dirToDelete.getSize = " + dirToDelete.getSize());
         //5756764 correct
+        return String.valueOf(dirToDelete.getSize());
+    }
+
+    public static void main(String[] args) throws Exception {
+
     }
 
     public static List<File> getAllFolders(List<File> files) {
