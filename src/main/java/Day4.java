@@ -1,4 +1,4 @@
-import utils.FileUtils;
+import common.FileUtils;
 import java.util.List;
 
 public class Day4 {

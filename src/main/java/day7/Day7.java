@@ -1,6 +1,6 @@
 package day7;
 
-import utils.FileUtils;
+import common.FileUtils;
 
 import java.util.*;
 
