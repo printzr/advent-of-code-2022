@@ -1,5 +1,6 @@
 package day9;
 
+import common.Part;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -8,15 +9,15 @@ class Day9Test {
 
     @Test
     void part1Sample() {
-        Day9 day9 = new Day9("/input/day9_sample_input.txt");
-        String result = day9.part1();
+        Day9 day9 = new Day9("/input/day9_sample_input.txt", Part.PART_ONE);
+        String result = day9.run();
         System.out.println("result = " + result);
     }
 
     @Test
     void part1() {
-        Day9 day9 = new Day9("/input/day9_input.txt");
-        String result = day9.part1();
+        Day9 day9 = new Day9("/input/day9_input.txt", Part.PART_ONE);
+        String result = day9.run();
         System.out.println("result = " + result);
     }
 
@@ -34,16 +35,16 @@ class Day9Test {
 
     @Test
     void part2Sample() {
-        Day9 day9 = new Day9("/input/day9_sample_part2_input.txt");
-        String result = day9.part2();
+        Day9 day9 = new Day9("/input/day9_sample_part2_input.txt", Part.PART_TWO);
+        String result = day9.run();
         System.out.println("result = " + result);
         assertEquals("36", result);
     }
 
     @Test
     void part2() {
-        Day9 day9 = new Day9("/input/day9_input.txt");
-        String result = day9.part2();
+        Day9 day9 = new Day9("/input/day9_input.txt", Part.PART_TWO);
+        String result = day9.run();
         System.out.println("result = " + result);
         //2273
     }

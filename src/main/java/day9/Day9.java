@@ -1,103 +1,98 @@
 package day9;
 
 import common.AdventOfCodeBase;
+import common.Part;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Day9 extends AdventOfCodeBase {
 
-    public Day9(String inputFilename) {
-        super(inputFilename);
+    public Day9(String inputFilename, Part part) {
+        super(inputFilename, part);
     }
 
     @Override
-    public String part1() {
+    public String run() {
         Space[][] grid = generateGrid();
-        Position head = Position.of(500,500);
-        Position tail = Position.of(500,500);
-        Position lastHeadPosition = Position.of(50,50);;
-        grid[500][500].visitHead();
-        grid[500][500].visitTail();
+        if( isPart1() ){
+            Position head = Position.of(500,500);
+            Position tail = Position.of(500,500);
+            Position lastHeadPosition = Position.of(50,50);;
+            grid[500][500].visitHead();
+            grid[500][500].visitTail();
 
-        for( String line : lines) {
-            String direction = line.split(" ")[0];
-            int moveCount = Integer.valueOf(line.split(" ")[1]);
+            for( String line : lines) {
+                String direction = line.split(" ")[0];
+                int moveCount = Integer.valueOf(line.split(" ")[1]);
 
-            for( int i = 0; i < moveCount; i++) {
-                lastHeadPosition = Position.of(head.y, head.x);
-                head.move(direction);
-                grid[head.y][head.x].visitHead();
-                if(shouldTailMove(head, tail)) {
-                    tail = lastHeadPosition;
-                    grid[tail.y][tail.x].visitTail();
+                for( int i = 0; i < moveCount; i++) {
+                    lastHeadPosition = Position.of(head.y, head.x);
+                    head.move(direction);
+                    grid[head.y][head.x].visitHead();
+                    if(shouldTailMove(head, tail)) {
+                        tail = lastHeadPosition;
+                        grid[tail.y][tail.x].visitTail();
+                    }
                 }
+
+            }
+            return String.valueOf(countTailSpaceVisits(grid));
+        } else {
+            List<Position> snake = new ArrayList<>();
+            for(int i = 0; i<10; i++) {
+                snake.add(Position.of(500,500));
             }
 
-        }
+            grid[500][500].visitTail();
 
+            for( String line : lines) {
+                String direction = line.split(" ")[0];
+                int moveCount = Integer.valueOf(line.split(" ")[1]);
 
-        return String.valueOf(countTailSpaceVisits(grid));
-    }
+                for( int i = 0; i < moveCount; i++) {
+                    Position head = snake.get(0);
+                    head.move(direction);
 
+                    for( int j = 1; j < 10; j++ ) {
+                        Position upperBody = snake.get(j-1);
+                        Position lowerBody = snake.get(j);
 
+                        //If not touching
+                        //Absolute value of the distance between horizontal or vertical distance is more than 1
+                        if( Math.max(Math.abs(lowerBody.x - upperBody.x), Math.abs(lowerBody.y - upperBody.y))>1) {
+                            //If horizontal difference
+                            if(Math.abs(lowerBody.x - upperBody.x)>0) {
+                                //Move towards upper body
+                                if( upperBody.x > lowerBody.x ) {
+                                    lowerBody.x++;
+                                } else {
+                                    lowerBody.x--;
+                                }
+                            }
 
-    @Override
-    public String part2() {
-        Space[][] grid = generateGrid();
-        List<Position> snake = new ArrayList<>();
-        for(int i = 0; i<10; i++) {
-            snake.add(Position.of(500,500));
-        }
-
-        grid[500][500].visitTail();
-
-        for( String line : lines) {
-            String direction = line.split(" ")[0];
-            int moveCount = Integer.valueOf(line.split(" ")[1]);
-
-            for( int i = 0; i < moveCount; i++) {
-                Position head = snake.get(0);
-                head.move(direction);
-
-                for( int j = 1; j < 10; j++ ) {
-                    Position upperBody = snake.get(j-1);
-                    Position lowerBody = snake.get(j);
-
-                    //If not touching
-                    //Absolute value of the distance between horizontal or vertical distance is more than 1
-                    if( Math.max(Math.abs(lowerBody.x - upperBody.x), Math.abs(lowerBody.y - upperBody.y))>1) {
-                        //If horizontal difference
-                        if(Math.abs(lowerBody.x - upperBody.x)>0) {
-                            //Move towards upper body
-                            if( upperBody.x > lowerBody.x ) {
-                                lowerBody.x++;
-                            } else {
-                                lowerBody.x--;
+                            //If vertical difference
+                            if( Math.abs(lowerBody.y - upperBody.y) > 0 ) {
+                                //Move towards upper body
+                                if( upperBody.y > lowerBody.y ) {
+                                    lowerBody.y++;
+                                } else {
+                                    lowerBody.y--;
+                                }
                             }
                         }
 
-                        //If vertical difference
-                        if( Math.abs(lowerBody.y - upperBody.y) > 0 ) {
-                            //Move towards upper body
-                            if( upperBody.y > lowerBody.y ) {
-                                lowerBody.y++;
-                            } else {
-                                lowerBody.y--;
-                            }
+                        //If tail, track visit
+                        if( j == 9 ) {
+                            grid[lowerBody.y][lowerBody.x].visitTail();
                         }
-                    }
 
-                    //If tail, track visit
-                    if( j == 9 ) {
-                        grid[lowerBody.y][lowerBody.x].visitTail();
                     }
-
                 }
             }
-        }
 
-        return String.valueOf(countTailSpaceVisits(grid));
+            return String.valueOf(countTailSpaceVisits(grid));
+        }
     }
 
     private int countTailSpaceVisits(Space[][] grid) {

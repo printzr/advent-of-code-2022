@@ -1,52 +1,52 @@
 package day11;
 
 import common.AdventOfCodeBase;
+import common.Part;
 import day7.Day7;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class Day11 extends AdventOfCodeBase {
 
-    public Day11(String inputFilename) {
-        super(inputFilename);
+    public Day11(String inputFilename, Part part) {
+        super(inputFilename, part);
     }
 
     private static final String SQUARE_OPERATOR = "square";
 
     @Override
-    public String part1() {
+    public String run() {
         List<Monkey> monkeys = parseMonkeys();
+        int rounds = isPart1() ? 20 : 10000;
 
-        //For 20 rounds
-        for( int i = 0; i < 10000; i++ ) {
-            System.out.println("i = " + i);
-//            System.out.println("i = " + i);
+        for( int i = 0; i < rounds; i++ ) {
             for( Monkey monkey : monkeys ) {
                 monkey.turn(monkeys);
             }
 
-            if( i == 0 || i == 19 || i == 9999 || i == 1999 || i == 2999 || i == 3999 ) {
+            //Debug
+            if( i == 0 || i == 19 || i == 999 || i == 1999 || i == 2999 || i == 3999 ) {
                 for( Monkey m : monkeys ) {
                     System.out.println(m);
                 }
             }
         }
 
+        //Sort ascending on inspectionCount
         Collections.sort(monkeys, Comparator.comparingInt(x-> x.inspectionCount));
 
+        //Debug
         for( Monkey m : monkeys ) {
             System.out.println(m);
         }
-        Integer monkeyBusiness = monkeys.get(monkeys.size()-1).inspectionCount * monkeys.get(monkeys.size()-2).inspectionCount;
+        //125721*123617
+        //15541252857
+        //15541252857
+        BigInteger monkeyBusiness = BigInteger.valueOf(Long.valueOf(monkeys.get(monkeys.size()-1).inspectionCount)).multiply(BigInteger.valueOf(Long.valueOf(monkeys.get(monkeys.size()-2).inspectionCount))) ;
         return monkeyBusiness.toString();
-    }
-
-
-    @Override
-    public String part2() {
-        return null;
     }
 
     private List<Monkey> parseMonkeys() {
@@ -121,15 +121,22 @@ public class Day11 extends AdventOfCodeBase {
                 //Inspect item
                 BigInteger worryValue = applyWorryOperation(item);
                 inspectionCount++;
-                //Divide by 3
-                //worryValue = worryValue / 3;
+                if( isPart1() ) {
+                    //Divide by 3
+                    worryValue = worryValue.divide(BigInteger.valueOf(Long.valueOf(3)));
+                } else {
+                    int reduceBy = 1;
+                    for( Monkey m : monkeys) {
+                        reduceBy = reduceBy*m.testValue;
+                    }
+                    worryValue = worryValue.divideAndRemainder(BigInteger.valueOf(Long.valueOf(reduceBy)))[1];
+                }
+
                 //Test item
-                if( worryValue.mod(BigInteger.valueOf(testValue)).intValue() == 0 ) {
-//                    System.out.println("throw "+worryValue +" to "+trueMonkey);
+                if( worryValue.divideAndRemainder(BigInteger.valueOf(Long.valueOf(testValue)))[1].intValue() == 0 ) {
                     monkeys.get(trueMonkey).catchItem(worryValue);
                 } else {
                     monkeys.get(falseMonkey).catchItem(worryValue);
-//                    System.out.println("throw "+worryValue +" to "+falseMonkey);
                 }
             }
             items = new ArrayList<>();
