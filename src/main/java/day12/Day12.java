@@ -4,7 +4,6 @@ import common.AdventOfCodeBase;
 import common.Part;
 
 import java.lang.reflect.Array;
-import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -14,233 +13,186 @@ public class Day12 extends AdventOfCodeBase {
         super(inputFilename, part);
     }
 
-
     @Override
     public String run() {
-        String[][] grid = parseGrid();
-        String alphabet = "abcdefghijklmnopqrstuvwxyz";
-        int currentHeight = 1;
-        Map<String,Integer> heightMap = new HashMap<>();
-        heightMap.put("S",1);
-        heightMap.put("E",26);
-        for( Character c : alphabet.toCharArray()) {
-            heightMap.put(String.valueOf(c),currentHeight);
-            currentHeight++;
+        final List<Square> squares = getSquares();
+        final Square end = squares.stream().filter(Square::isEnd).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No end square found"));
+
+        if( isPart1() ) {
+            final Square start = squares.stream().filter(Square::isStart).findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("No start square found"));
+            return String.valueOf(dijkstra(start, end, squares));
+        } else {
+           int min = squares.stream()
+                    .filter(x->x.getHeight() == 'a')
+                    .map(x->dijkstra(x,end, squares))
+                    .collect(Collectors.toList())
+                    .stream().min(Integer::compare).get();
+           return String.valueOf(min);
         }
 
-        // No of vertices
-        int v = Arrays.stream(grid).map(Array::getLength).reduce(0,Integer::sum);
-
-        // Adjacency list for storing which vertices are connected
-        ArrayList<ArrayList<Integer>> adj = new ArrayList<ArrayList<Integer>>(v);
-        for (int i = 0; i < v; i++) {
-            adj.add(new ArrayList<Integer>());
-        }
-
-        // Creating graph given in the above diagram.
-        // add_edge function takes adjacency list, source
-        // and destination vertex as argument and forms
-        // an edge between them.
-        int starting = 0;
-        int ending = 0;
-
-        for( int y = 0; y < grid.length; y++) {
-            for( int x = 0; x < grid[0].length; x++) {
-                int verticePosition = getVerticePosition(y,x,grid);
-                String value = grid[y][x];
-                Integer valueHeight = heightMap.get(value);
-                if( "S".equals(value)) {
-                    System.out.println("Starting verticePosition = " + verticePosition);
-                    starting = verticePosition;
-                } else if( "E".equals(value)) {
-                    System.out.println("Ending verticePosition = " + verticePosition);
-                    ending = verticePosition;
-                    continue;
-                }
-                System.out.println("value = " + value);
-                System.out.println("valueHeight = " + valueHeight);
-
-                //Check Up
-                if( y > 0 ) {
-                    int localY = y-1;
-                    int localX = x;
-                    int localVerticePosition = getVerticePosition(localY, localX, grid);
-                    String localValue = grid[localY][localX];
-                    Integer localValueHeight = heightMap.get(localValue);
-                    if( canTravel(valueHeight, localValueHeight)){
-                        System.out.println("Add Up");
-                        addEdge(adj, verticePosition, localVerticePosition);
-                    }
-                }
-                //Check Down
-                if( y < grid.length-2){
-                    int localY = y+1;
-                    int localX = x;
-                    int localVerticePosition = getVerticePosition(localY, localX, grid);
-                    String localValue = grid[localY][localX];
-                    Integer localValueHeight = heightMap.get(localValue);
-                    if( canTravel(valueHeight, localValueHeight)){
-                        System.out.println("Add Down");
-                        addEdge(adj, verticePosition, localVerticePosition);
-                    }
-                }
-                //Check Left
-                if( x > 0 ){
-                    int localY = y;
-                    int localX = x-1;
-                    int localVerticePosition = getVerticePosition(localY, localX, grid);
-                    String localValue = grid[localY][localX];
-                    Integer localValueHeight = heightMap.get(localValue);
-                    if( canTravel(valueHeight, localValueHeight)){
-                        System.out.println("Add Left");
-                        addEdge(adj, verticePosition, localVerticePosition);
-                    }
-                }
-                //Check Right
-                if( x < grid[0].length-2 ){
-                    int localY = y;
-                    int localX = x+1;
-                    int localVerticePosition = getVerticePosition(localY, localX, grid);
-                    String localValue = grid[localY][localX];
-                    Integer localValueHeight = heightMap.get(localValue);
-                    if( canTravel(valueHeight, localValueHeight)){
-                        System.out.println("Add Right");
-                        addEdge(adj, verticePosition, localVerticePosition);
-                    }
-                }
-            }
-
-        }
-
-
-
-        return String.valueOf(printShortestDistance(adj, starting, ending, v));
     }
 
-    private boolean canTravel(int valueHeight, int localValueHeight) {
-        return localValueHeight <= (valueHeight+1);
-    }
-
-    private int getVerticePosition(int y, int x, String[][] grid) {
-        return y*grid[0].length + x;
-    }
-
-
-    private String[][] parseGrid() {
-        int width = lines.get(0).length();
-        int height = lines.size();
-        String[][] grid = new String[height][width];
-        int y = 0;  int x = 0;
-
-        for (String line : lines) {
-            System.out.println("line = " + line);
-            for( Character c : line.toCharArray()) {
-                grid[y][x] = String.valueOf(c);
-                x++;
-            }
-            y++;
-            x=0;
-        }
-        return grid;
-    }
-
-
-    // function to form edge between two vertices
-    // source and dest
-    private static void addEdge(ArrayList<ArrayList<Integer>> adj, int i, int j)
-    {
-        System.out.println("addEdge: i:"+i+" j:"+j);
-        adj.get(i).add(j);
-//        adj.get(j).add(i);
-    }
-
-    // function to print the shortest distance and path
-    // between source vertex and destination vertex
-    private static int printShortestDistance(ArrayList<ArrayList<Integer>> adj, int s, int dest, int v)
-    {
-        // predecessor[i] array stores predecessor of
-        // i and distance array stores distance of i
-        // from s
-        int pred[] = new int[v];
-        int dist[] = new int[v];
-
-        if (BFS(adj, s, dest, v, pred, dist) == false) {
-            System.out.println("Given source and destination" +
-                    "are not connected");
-            return 0;
-        }
-
-        // LinkedList to store path
-        LinkedList<Integer> path = new LinkedList<>();
-        int crawl = dest;
-        path.add(crawl);
-        while (pred[crawl] != -1) {
-            path.add(pred[crawl]);
-            crawl = pred[crawl];
-        }
-
-        // Print distance
-        System.out.println("Shortest path length is: " + dist[dest]);
-
-        // Print path
-        System.out.println("Path is ::");
-        for (int i = path.size() - 1; i >= 0; i--) {
-            System.out.print(path.get(i) + " ");
-        }
-        return dist[dest];
-    }
-
-    // a modified version of BFS that stores predecessor
-    // of each vertex in array pred
-    // and its distance from source in array dist
-    private static boolean BFS(ArrayList<ArrayList<Integer>> adj, int src,
-                               int dest, int v, int pred[], int dist[])
-    {
-        // a queue to maintain queue of vertices whose
-        // adjacency list is to be scanned as per normal
-        // BFS algorithm using LinkedList of Integer type
-        LinkedList<Integer> queue = new LinkedList<>();
-
-        // boolean array visited[] which stores the
-        // information whether ith vertex is reached
-        // at least once in the Breadth first search
-        boolean visited[] = new boolean[v];
-
-        // initially all vertices are unvisited
-        // so v[i] for all i is false
-        // and as no path is yet constructed
-        // dist[i] for all i set to infinity
-        for (int i = 0; i < v; i++) {
-            visited[i] = false;
-            dist[i] = Integer.MAX_VALUE;
-            pred[i] = -1;
-        }
-
-        // now source is first to be visited and
-        // distance from source to itself should be 0
-        visited[src] = true;
-        dist[src] = 0;
-        queue.add(src);
-
-        // bfs Algorithm
+    //https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
+    private int dijkstra(final Square start, final Square end, final List<Square> squares) {
+        final PriorityQueue<Square> queue = new PriorityQueue<>();
+        queue.offer(start);
+        final Map<Square, Integer> distances = new HashMap<>();
+        distances.put(start, 0);
         while (!queue.isEmpty()) {
-            int u = queue.remove();
-            for (int i = 0; i < adj.get(u).size(); i++) {
-                if (visited[adj.get(u).get(i)] == false) {
-                    visited[adj.get(u).get(i)] = true;
-                    dist[adj.get(u).get(i)] = dist[u] + 1;
-                    pred[adj.get(u).get(i)] = u;
-                    queue.add(adj.get(u).get(i));
-
-                    // stopping condition (when we find
-                    // our destination)
-                    if (adj.get(u).get(i) == dest)
-                        return true;
+            final Square current = queue.poll();
+            final int dist = distances.get(current);
+            final List<Square> neighbours = current.getNeighbours(squares);
+            for (final Square n : neighbours) {
+                int ndist = dist;
+                ndist++;
+                if (ndist < distances.getOrDefault(n, Integer.MAX_VALUE)) {
+                    distances.put(n, ndist);
+                    queue.add(n);
                 }
             }
         }
-        return false;
+
+        return distances.entrySet().stream()
+                .filter(e -> e.getKey().equals(end)).
+                collect(Collectors.toList()).stream()
+                .map(Map.Entry::getValue)
+                .mapToInt(d -> d)
+                .min().orElse(Integer.MAX_VALUE);
     }
 
+    private List<Square> getSquares() {
+        final List<Square> squares = new ArrayList<>();
+        for (int y = 0; y < lines.size(); y++) {
+            final String line = lines.get(y);
+            for (int x = 0; x < line.length(); x++) {
+                final char height = line.charAt(x);
+                final Square s = new Square(x, y, height);
+                if (height == 'S') {
+                    s.setHeight('a');
+                    s.setStart(true);
+                } else if (height == 'E') {
+                    s.setHeight('z');
+                    s.setEnd(true);
+                }
+                squares.add(s);
+            }
+
+        }
+        return squares;
+    }
+
+
+    public class Square implements Comparable<Square> {
+        private final int x;
+        private final int y;
+        private int height;
+        private boolean start;
+        private boolean end;
+
+        public Square(final int x, final int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        public Square(final int x, final int y, final int height) {
+            this.x = x;
+            this.y = y;
+            this.height = height;
+        }
+
+        public List<Square> getNeighbours(final List<Square> allSquares) {
+            final List<Square> squares = new ArrayList<>();
+            Square s = new Square(x - 1, y);
+            if (allSquares.contains(s) && allSquares.get(allSquares.indexOf(s)).getHeight() <= (this.height + 1)) {
+                squares.add(allSquares.get(allSquares.indexOf(s)));
+            }
+            s = new Square(x + 1, y);
+            if (allSquares.contains(s) && allSquares.get(allSquares.indexOf(s)).getHeight() <= (this.height + 1)) {
+                squares.add(allSquares.get(allSquares.indexOf(s)));
+            }
+            s = new Square(x, y - 1);
+            if (allSquares.contains(s) && allSquares.get(allSquares.indexOf(s)).getHeight() <= (this.height + 1)) {
+                squares.add(allSquares.get(allSquares.indexOf(s)));
+            }
+            s = new Square(x, y + 1);
+            if (allSquares.contains(s) && allSquares.get(allSquares.indexOf(s)).getHeight() <= (this.height + 1)) {
+                squares.add(allSquares.get(allSquares.indexOf(s)));
+            }
+            return squares;
+        }
+
+        @Override
+        public String toString() {
+            return "Square [x=" + x + ", y=" + y + ", height=" + height + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + x;
+            result = prime * result + y;
+            return result;
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            final Square other = (Square) obj;
+            if (x != other.x)
+                return false;
+            if (y != other.y)
+                return false;
+            return true;
+        }
+
+        public int getX() {
+            return x;
+        }
+
+        public int getY() {
+            return y;
+        }
+
+        public int getHeight() {
+            return height;
+        }
+
+        public void setStart(final boolean start) {
+            this.start = start;
+        }
+
+        public boolean isStart() {
+            return this.start;
+        }
+
+        public void setEnd(final boolean end) {
+            this.end = end;
+        }
+
+        public boolean isEnd() {
+            return this.end;
+        }
+
+        public void setHeight(final int height) {
+            this.height = height;
+        }
+
+        @Override
+        public int compareTo(final Square o) {
+            if (this.y != o.getY()) {
+                return Integer.compare(this.y, o.getY());
+            } else {
+                return Integer.compare(this.x, o.getX());
+            }
+        }
+    }
 }
 

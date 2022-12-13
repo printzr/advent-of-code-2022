@@ -21,8 +21,22 @@ class Day12Test {
         Day12 day = new Day12("/input/day12_input.txt", Part.PART_ONE);
         String result = day.run();
         System.out.println("result= " + result);
-//        assertEquals(0, Integer.valueOf(result));
-        //145 too low
-        //146 not right
+        assertEquals(520, Integer.valueOf(result));
+    }
+
+    @Test
+    void run_part2_sample() {
+        Day12 day = new Day12("/input/day12_sample_input.txt", Part.PART_TWO);
+        String result = day.run();
+        System.out.println("result= " + result);
+        assertEquals(29, Integer.valueOf(result));
+    }
+
+    @Test
+    void run_part2() {
+        Day12 day = new Day12("/input/day12_input.txt", Part.PART_TWO);
+        String result = day.run();
+        System.out.println("result= " + result);
+        assertEquals(508, Integer.valueOf(result));
     }
 }
