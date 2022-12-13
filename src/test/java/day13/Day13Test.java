@@ -25,7 +25,9 @@ class Day13Test {
         Day13 day = new Day13(INPUT, Part.PART_ONE);
         String result = day.run();
         System.out.println("result= " + result);
-//        assertEquals(0, Integer.valueOf(result));
+        assertEquals(5675, Integer.valueOf(result));
+        //529 too low
+        //5675
     }
 
     @Test
@@ -33,7 +35,7 @@ class Day13Test {
         Day13 day = new Day13(SAMPLE_INPUT, Part.PART_TWO);
         String result = day.run();
         System.out.println("result= " + result);
-        assertEquals(0, Integer.valueOf(result));
+        assertEquals(140, Integer.valueOf(result));
     }
 
     @Test
@@ -41,7 +43,7 @@ class Day13Test {
         Day13 day = new Day13(INPUT, Part.PART_TWO);
         String result = day.run();
         System.out.println("result= " + result);
-//        assertEquals(0, Integer.valueOf(result));
+        assertEquals(20383, Integer.valueOf(result));
     }
 
 }
