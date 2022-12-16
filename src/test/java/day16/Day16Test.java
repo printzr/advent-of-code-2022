@@ -16,7 +16,7 @@ class Day16Test {
         Day16 day = new Day16(SAMPLE_INPUT, Part.PART_ONE);
         String result = day.run();
         System.out.println("result= " + result);
-        assertEquals(0, Integer.valueOf(result));
+        assertEquals(1651, Integer.valueOf(result));
     }
 
     @Test
