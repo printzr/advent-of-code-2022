@@ -13,224 +13,228 @@ public class Day16 extends AdventOfCodeBase {
         super(inputFilename, part);
     }
 
-    private static HashMap<String,Integer> keys = new HashMap<>();
-    private static HashMap<String, Valve> valves = new HashMap<>();
-    private static List<Valve> path = new ArrayList<>();
-
     @Override
     public String run() {
         int answer = 0;
 
-        // Create a graph given in the above diagram.
-        // Here vertex numbers are 0, 1, 2, 3, 4, 5 with
-        // following mappings:
-        // 0=r, 1=s, 2=t, 3=x, 4=y, 5=z
-        int graphSize = valves.entrySet().stream()
-                .map(v->v.getValue().paths.length+1)
-                .reduce(0,Integer::sum);
-        Graph g = new Graph(graphSize);
-        for( String line : lines ) {
-            line = line.replace("Valve ","");
-            line = line.replace(" has flow rate=",",");
-            line = line.replace("; tunnels lead to valves ","~");
-            line = line.replace("; tunnel leads to valve ","~");
+        ArrayList<Valve> valves = new ArrayList<>();
+        for (String line : lines) {
+            String[] words = line.split(", |; | ");
+            Valve v = new Valve();
+            v.name = words[1];
+            v.flow = Integer.parseInt(words[4].split("=")[1]);
+            v.connections.addAll(Arrays.asList(words).subList(9, words.length));
+            valves.add(v);
+        }
 
-            String[] parts = line.split("~");
-            String[] valveParts = parts[0].split(",");
-            String valveKey = valveParts[0];
-            int valveWeight = Integer.valueOf(valveParts[1]);
-            String[] paths = parts[1].split(",");
-            for( int i = 0; i < paths.length; i++ ) {
-                paths[i] = paths[i].trim();
+        //build map of paths: each string key links to a map that contains the distance to each other path
+        HashMap<String, HashMap<String, Integer>> paths = new HashMap<>();
+        for (Valve v : valves) {
+            LinkedList<Valve> queue = new LinkedList<>();
+            queue.add(v);
+            HashMap<String, Integer> dists = new HashMap<>();
+            dists.put(v.name, 0);
+            HashSet<String> seen = new HashSet<>();
+            seen.add(v.name);
+
+            while (queue.size() > 0) {
+                Valve cur = queue.poll();
+                int distFrom = dists.get(cur.name);
+
+                for (String connection : cur.connections) {
+                    if (!seen.contains(connection)) {
+                        seen.add(connection);
+                        dists.put(connection, distFrom + 1);
+                        queue.add(valves.stream().filter(x -> x.name.equals(connection)).findFirst().get());
+                    }
+                }
             }
 
-            valves.put(valveKey,Valve.of(valveKey, valveWeight, paths));
+            paths.put(v.name, dists);
+        }
+        ArrayList<Valve> nonzeroFlow = new ArrayList<>(valves.stream().filter(x -> x.flow > 0).toList());
+
+        final int BITSET_MAX = 1 << nonzeroFlow.size();
+
+        //dp is a three-dimensional int array representing:
+        //dp[a][b][c] = max pressure released at minute a, currently at valve b, with valves c opened
+        //we convert valves opened to an integer representing a bitset in order to allow it to be used as an array index
+        int[][][] dp = new int[31][nonzeroFlow.size()][BITSET_MAX];
+
+        //fill manually
+        for (int[][] square : dp)
+            for (int[] row : square)
+                Arrays.fill(row, Integer.MIN_VALUE);
+
+        //now, populate our starting values:
+        //for each node in nonzero, we set the earliest minute it can be traveled to and opened (based on distance) to zero
+        for (int i = 0; i < nonzeroFlow.size(); i++) {
+            int distFromStart = paths.get("AA").get(nonzeroFlow.get(i).name);
+            //1 << i produces a binary number with only digit i "on" or 1
+            //this represents the bitset for just that valve being open
+            dp[distFromStart + 1][i][1 << i] = 0;
         }
 
-        for( Map.Entry<String, Valve> entry : valves.entrySet() ) {
-            String key = entry.getKey();
-            Valve valve = entry.getValue();
-            for( int i = 0; i < valve.paths.length; i++ ){
-                Valve dest = valves.get(valve.paths[i]);
-                g.addEdge(valve.numericKey, dest.numericKey, valve.rate);
-//                g.addEdge(dest.numericKey, valve.numericKey, dest.rate);
+        if (isPart1()) {
+            int bestPressure = 0;
+            for (int minute = 1; minute < 31; minute++) {
+                //iterate over potential current locations
+                for (int curPos = 0; curPos < nonzeroFlow.size(); curPos++) {
+                    //iterate over possible open bitsets
+                    for (int bitset = 0; bitset < BITSET_MAX; bitset++) {
+
+                        //calculate flow that occurred for this condition since last minute
+                        int potentialFlow = getFlowOfBitmask(nonzeroFlow, bitset);
+
+                        int newPressure = dp[minute - 1][curPos][bitset] + potentialFlow;
+                        //if newPressure is better than current max for these conditions, update
+                        if (newPressure > dp[minute][curPos][bitset]) {
+                            dp[minute][curPos][bitset] = newPressure;
+                        }
+
+                        bestPressure = Math.max(bestPressure, newPressure);
+
+                        //if current valve is unopened, we don't want to move
+                        if (((1 << curPos) & bitset) == 0) {
+                            continue;
+                        }
+
+                        //iterate over potential destinations to move to and/or open
+                        //if we are at an unopened valve, this will just open it
+                        for (int other = 0; other < nonzeroFlow.size(); other++) {
+                            //ignore if already open in bitset
+                            if (((1 << other) & bitset) != 0)
+                                continue;
+
+                            //find travel distance to next valve
+                            int distTo = paths.get(nonzeroFlow.get(curPos).name).get(nonzeroFlow.get(other).name);
+
+                            //ignore if it would take too long to travel to and open
+                            if (minute + distTo + 1 > 30)
+                                continue;
+
+                            //calculate flow that would take place while we are traveling to and opening next valve
+                            int travelPressure = dp[minute][curPos][bitset] + potentialFlow * (distTo + 1);
+
+                            //use | operation to insert bit of other valve being opened into bitmask
+                            int newBitset = bitset | (1 << other);
+
+                            //if travel pressure is better than best pressure for the condition at end of travel, update array
+                            if (travelPressure > dp[minute + distTo + 1][other][newBitset]) {
+                                dp[minute + distTo + 1][other][newBitset] = travelPressure;
+                            }
+                        }
+                    }
+                }
             }
-        }
+            answer = bestPressure;
+        } else {
+            //for part 2, we still need to populate the dp array
+            for (int minute = 1; minute < 27; minute++) {
+                //iterate over potential current locations
+                for (int curPos = 0; curPos < nonzeroFlow.size(); curPos++) {
+                    //iterate over possible open bitsets
+                    for (int bitset = 0; bitset < BITSET_MAX; bitset++) {
 
-//        Graph g = new Graph(6);
-//        g.addEdge(0, 1, 5);
-//        g.addEdge(0, 2, 3);
-//        g.addEdge(1, 3, 6);
-//        g.addEdge(1, 2, 2);
-//        g.addEdge(2, 4, 4);
-//        g.addEdge(2, 5, 2);
-//        g.addEdge(2, 3, 7);
-//        g.addEdge(3, 5, 1);
-//        g.addEdge(3, 4, -1);
-//        g.addEdge(4, 5, -2);
+                        //calculate flow that occurred for this condition since last minute
+                        int potentialFlow = getFlowOfBitmask(nonzeroFlow, bitset);
 
-        int s = 1;
-        System.out.print("Following are longest distances from source vertex "+ s + " \n" );
-        g.longestPath(s);
+                        int newPressure = dp[minute - 1][curPos][bitset] + potentialFlow;
+                        //if newPressure is better than current max for these conditions, update
+                        if (newPressure > dp[minute][curPos][bitset]) {
+                            dp[minute][curPos][bitset] = newPressure;
+                        }
 
-        System.out.print("Path:");
-        for( Valve v : path ) {
-            System.out.print(v.key + " ");
-        }
+                        //if current valve is unopened, we don't want to move
+                        if (((1 << curPos) & bitset) == 0) {
+                            continue;
+                        }
 
-        return "" + answer;
-    }
+                        //iterate over potential destinations to move to and/or open
+                        //if we are at an unopened valve, this will just open it
+                        for (int other = 0; other < nonzeroFlow.size(); other++) {
+                            //ignore if already open in bitset
+                            if (((1 << other) & bitset) != 0)
+                                continue;
 
-    private static class Valve {
-        String key;
-        int rate;
-        Integer numericKey;
-        String[] paths;
+                            //find travel distance to next valve
+                            int distTo = paths.get(nonzeroFlow.get(curPos).name).get(nonzeroFlow.get(other).name);
 
+                            //ignore if it would take too long to travel to and open
+                            if (minute + distTo + 1 > 26)
+                                continue;
 
-        public Valve(String key, int rate, String[] paths) {
-            this.key = key;
-            this.rate = rate;
-            this.paths = paths;
-            this.numericKey = getKeyValue(key);
-        }
+                            //calculate flow that would take place while we are traveling to and opening next valve
+                            int travelPressure = dp[minute][curPos][bitset] + potentialFlow * (distTo + 1);
 
-        public static Valve of(String key, int rate, String[] paths) {
-            return new Valve(key, rate, paths);
-        }
-    }
+                            //use | operation to insert bit of other valve being opened into bitmask
+                            int newBitset = bitset | (1 << other);
 
-    private static Integer getKeyValue(String key) {
-        if( !keys.containsKey(key) ) {
-            keys.put(key,keys.size()+1);
-        }
-        return keys.get(key);
-    }
-
-    private static Valve getValue(int numericKey) {
-        return valves.entrySet().stream()
-                .filter(v->v.getValue().numericKey == numericKey)
-                .findFirst()
-                .get().getValue();
-    }
-
-    // Graph is represented using adjacency list. Every
-    // node of adjacency list contains vertex number of
-    // the vertex to which edge connects. It also
-    // contains weight of the edge
-    static class AdjListNode {
-        int v;
-        int weight;
-
-        AdjListNode(int _v, int _w)
-        {
-            v = _v;
-            weight = _w;
-        }
-        int getV() { return v; }
-        int getWeight() { return weight; }
-    }
-
-    // Class to represent a graph using adjacency list
-    // representation
-    static class Graph {
-        int V; // No. of vertices'
-
-        // Pointer to an array containing adjacency lists
-        ArrayList<ArrayList<AdjListNode>> adj;
-
-        Graph(int V) // Constructor
-        {
-            this.V = V;
-            adj = new ArrayList<ArrayList<AdjListNode>>(V);
-
-            for(int i = 0; i < V; i++){
-                adj.add(new ArrayList<AdjListNode>());
-            }
-        }
-
-        void addEdge(int u, int v, int weight)
-        {
-            AdjListNode node = new AdjListNode(v, weight);
-            adj.get(u).add(node); // Add v to u's list
-        }
-
-        // A recursive function used by longestPath. See below
-        // link for details
-        // https:// www.geeksforgeeks.org/topological-sorting/
-        void topologicalSortUtil(int v, boolean visited[],
-                                 Stack<Integer> stack)
-        {
-            // Mark the current node as visited
-            visited[v] = true;
-
-            // Recur for all the vertices adjacent to this vertex
-            for (int i = 0; i<adj.get(v).size(); i++) {
-                AdjListNode node = adj.get(v).get(i);
-                if (!visited[node.getV()])
-                    topologicalSortUtil(node.getV(), visited, stack);
-            }
-
-            // Push current vertex to stack which stores topological
-            // sort
-            stack.push(v);
-        }
-
-        // The function to find longest distances from a given vertex.
-        // It uses recursive topologicalSortUtil() to get topological
-        // sorting.
-        void longestPath(int s)
-        {
-            Stack<Integer> stack = new Stack<Integer>();
-            int dist[] = new int[V];
-
-
-            // Mark all the vertices as not visited
-            boolean visited[] = new boolean[V];
-            for (int i = 0; i < V; i++)
-                visited[i] = false;
-
-            // Call the recursive helper function to store Topological
-            // Sort starting from all vertices one by one
-            for (int i = 0; i < V; i++)
-                if (visited[i] == false)
-                    topologicalSortUtil(i, visited, stack);
-
-            // Initialize distances to all vertices as infinite and
-            // distance to source as 0
-            for (int i = 0; i < V; i++)
-                dist[i] = Integer.MIN_VALUE;
-
-            dist[s] = 0;
-
-            // Process vertices in topological order
-            while (stack.isEmpty() == false)
-            {
-
-                // Get the next vertex from topological order
-                int u = stack.peek();
-                stack.pop();
-
-                // Update distances of all adjacent vertices ;
-                if (dist[u] != Integer.MIN_VALUE)
-                {
-                    for (int i = 0; i<adj.get(u).size(); i++)
-                    {
-                        AdjListNode node = adj.get(u).get(i);
-                        if (dist[node.getV()] < dist[u] + node.getWeight()) {
-                            dist[node.getV()] = dist[u] + node.getWeight();
-                            path.add(getValue(node.getV()));
+                            //if travel pressure is better than best pressure for the condition at end of travel, update array
+                            if (travelPressure > dp[minute + distTo + 1][other][newBitset]) {
+                                dp[minute + distTo + 1][other][newBitset] = travelPressure;
+                            }
                         }
                     }
                 }
             }
 
-            // Print the calculated longest distances
-            for (int i = 0; i < V; i++)
-                if(dist[i] == Integer.MIN_VALUE)
-                    System.out.print("INF ");
-                else
-                    System.out.print(dist[i] + " ");
+            //for part 2, we can assume that the best solution has us and the elephant traversing two distinct (disjoint) "sets" of valves
+            //because repeating valves would be inefficient and not produce the best pressure
+            //so, examine all possible sets of our valves (in bitmask form) and find the maximum combined pressure released
+            int bestPressure = 0;
+            for (int mask1 = 1; mask1 < BITSET_MAX; mask1++) {
+                for (int mask2 = 1; mask2 < BITSET_MAX; mask2++) {
+                    //make sure that mask1 contains all of mask2
+                    //later, we'll turn on all of mask1 that isnt it mask2
+                    if ((mask1 & mask2) != mask2)
+                        continue;
+
+                    int best1 = 0;
+                    int best2 = 0;
+
+                    //iterate over all possible ending locations and find best pressure
+                    for (int i = 0; i < nonzeroFlow.size(); i++) {
+                        //get best score of all valves in mask1 that aren't in mask2
+                        best1 = Math.max(best1, dp[26][i][(mask1 & (~mask2))]);
+                        best2 = Math.max(best2, dp[26][i][mask2]);
+                    }
+
+                    bestPressure = Math.max(bestPressure, best1 + best2);
+                }
+            }
+
+            answer = bestPressure;
+        }
+
+
+        return "" + answer;
+    }
+
+    //calculates total flow per minute of the valves listed as open by the bitmask
+    public int getFlowOfBitmask(ArrayList<Valve> nonzero, int bitmask) {
+        int flow = 0;
+        for (int i = 0; i < nonzero.size(); i++) {
+            //1 << i & bitmask will return zero if the bit at i is 0
+            //and nonzero if it is 1
+            //so, if the bit is on (valve is open) add its flow to the total flow
+            if (((1 << i) & bitmask) != 0) {
+                flow += nonzero.get(i).flow;
+            }
+        }
+        return flow;
+    }
+
+    public class Valve {
+
+        public String name;
+        public ArrayList<String> connections = new ArrayList<>();
+        public int flow;
+
+        public Valve() {
+
         }
     }
+
+
 }
