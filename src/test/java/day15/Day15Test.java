@@ -1,7 +1,6 @@
 package day15;
 
 import common.Part;
-import day14.Day14;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,7 +25,7 @@ class Day15Test {
         day.rowCheck = 2000000;
         String result = day.run();
         System.out.println("result= " + result);
-        assertEquals(0, Integer.valueOf(result));
+        assertEquals(5181556, Integer.valueOf(result));
     }
 
     @Test
@@ -34,15 +33,16 @@ class Day15Test {
         Day15 day = new Day15(SAMPLE_INPUT, Part.PART_TWO);
         String result = day.run();
         System.out.println("result= " + result);
-        assertEquals(93, Integer.valueOf(result));
+        assertEquals(56000011, Integer.valueOf(result));
     }
 
     @Test
     void run_part2() {
         Day15 day = new Day15(INPUT, Part.PART_TWO);
         String result = day.run();
+        day.part2MaxCoordinate = 4000000;
         System.out.println("result= " + result);
-        assertEquals(26139, Integer.valueOf(result));
+        assertEquals("12817603219131", result);
     }
 
 }

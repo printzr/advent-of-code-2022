@@ -2,13 +2,9 @@ package day15;
 
 import common.AdventOfCodeBase;
 import common.Part;
-import day14.Day14;
-import org.checkerframework.checker.units.qual.A;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 
 public class Day15 extends AdventOfCodeBase {
@@ -23,225 +19,227 @@ public class Day15 extends AdventOfCodeBase {
     private static final String SENSOR = "S";
     private static final String NO_BEACON = "#";
 
+    //part2
+    public int part2MaxCoordinate = 20;
+
     @Override
     public String run() {
         int answer = 0;
 
-        List<Sensor> sensorList = new ArrayList<>();
-        List<Beacon> beaconList = new ArrayList<>();
 
+        List<Point> sensors = new ArrayList<>();
+        List<Point> beacons = new ArrayList<>();
+        List<Integer> distances = new ArrayList<>();
+        List<Integer> alreadyBeacons = new ArrayList<>();
         for( String line : lines ) {
             line = line.replace("Sensor at x=","");
             line = line.replace(", y=", ",");
             line = line.replace(": closest beacon is at x=",",");
             String[] parts = line.split(",");
-            Beacon beacon = Beacon.of(Integer.valueOf(parts[2]),Integer.valueOf(parts[3]));
-            Sensor sensor = Sensor.of(Integer.valueOf(parts[0]),Integer.valueOf(parts[1]), beacon);
-            sensorList.add(sensor);
-            beaconList.add(beacon);
+            int x1 = Integer.parseInt(parts[0]);
+            int y1 = Integer.parseInt(parts[1]);
+            int x2 = Integer.parseInt(parts[2]);
+            int y2 = Integer.parseInt(parts[3]);
+
+            if (y2 == rowCheck) {
+                alreadyBeacons.add(x2);
+            }
+            sensors.add(Point.of(x1, y1));
+            beacons.add(Point.of(x2, y2));
+            distances.add(Math.abs(x1 - x2) + Math.abs(y1 - y2));
         }
 
-        int sensorMaxX = sensorList.stream().mapToInt(s->s.x).max().getAsInt();
-        int sensorMinX = sensorList.stream().mapToInt(s->s.x).min().getAsInt();
-        int beaconMaxX = beaconList.stream().mapToInt(b->b.x).max().getAsInt();
-        int beaconMinX = beaconList.stream().mapToInt(b->b.x).min().getAsInt();
-
-        int left = Math.min(sensorMinX, beaconMinX);
-        int right = Math.min(sensorMaxX, beaconMaxX);
-
-        String[] rowResult = new String [right+2];
-        int resultOffset = 2;
-        for( int i = left; i<right; i++ ) {
-//            System.out.println("i = " + i);
-            rowResult[i+resultOffset]=".";
-            Point p = Point.of(i,10);
-            Optional<Beacon> beaconAtPoint = beaconList.stream().filter(b->b.equals(p)).findFirst();
-            if( beaconAtPoint.isPresent() ) {
-                System.out.println("beaconAtPoint = " + beaconAtPoint);
-                rowResult[i+resultOffset]=BEACON;
-                continue;
-            }
-
-            for( Sensor sensor : sensorList ) {
-                int sensorDeadZone = sensor.distanceFrom(sensor.beacon);
-//                System.out.println("sensorDeadZone = " + sensorDeadZone);
-                int distanceFromSensor = sensor.distanceFrom(p);
-//                System.out.println("distanceFromSensor = " + distanceFromSensor);
-
-                if( distanceFromSensor <= sensorDeadZone ) {
-//                    System.out.println("add from position:"+i);
-                    rowResult[i+resultOffset]=NO_BEACON;
+        if(isPart1()) {
+            for (int x = -5000000; x < 5000000; x++) {
+                if (alreadyBeacons.contains(x)) {
+                    continue;
+                }
+                boolean possible = checkPossible(x,rowCheck,sensors,distances, 0);
+                if (!possible) {
                     answer++;
-                    break;
-                }
-            }
-        }
-        System.out.println("Arrays.stream(rowResult) = " + Arrays.stream(rowResult).collect(Collectors.joining()));
-
-        return ""+answer;
-    }
-
-    public String run2() {
-        int answer = 0;
-        String[][] grid = parseGrid();
-
-        for( int y = 0; y<grid.length; y++ ) {
-            System.out.print(String.format("%03d", y-GRID_OFFSET));
-            for( int x = 0; x< grid[0].length; x++) {
-                System.out.print(grid[y][x]);
-            }
-            System.out.print("\n");
-        }
-
-        /*
--02############.#.###########...
--01###########.###############..
-000####S#####################...
-001###############.######S##....
-002##############.S########.....
-003################SB#####......
-004######################.......
-005#####################........
-006.#####################.......
-007#.########S#######S####......
-008##.###########.#########.....
-009###.#########...#########....
-010###.B#########.###########...
-011##S#..#####################..
-012#####..#####################.
-013######..#.#################..
-014#######..#.###S#######S###...
-015B#######..###############....
-016###########SB###########.....
-017################S######....B.
-018####S##################......
-019######..##############.......
-020#####....###S.#####S#........
-021.###......#....#####.........
-022..#.............###....B.....
-023.................#...........
-         */
-
-        System.out.print("\n");
-        System.out.print("\n");
-        int checkHeight = rowCheck+GRID_OFFSET;
-        for( int x = 0; x< grid[0].length; x++) {
-            String value = grid[checkHeight][x];
-            System.out.print(value);
-            if( NO_BEACON.equals(value) || SENSOR.equals(value)) {
-                answer++;
-            }
-        }
-
-
-        return ""+answer;
-    }
-
-    private String[][] parseGrid() {
-        List<Sensor> sensorList = new ArrayList<>();
-        List<Beacon> beaconList = new ArrayList<>();
-
-        for( String line : lines ) {
-            line = line.replace("Sensor at x=","");
-            line = line.replace(", y=", ",");
-            line = line.replace(": closest beacon is at x=",",");
-            String[] parts = line.split(",");
-            sensorList.add(Sensor.of(Integer.valueOf(parts[0]),Integer.valueOf(parts[1])));
-            beaconList.add(Beacon.of(Integer.valueOf(parts[2]),Integer.valueOf(parts[3])));
-        }
-
-        int sensorMaxX = sensorList.stream().mapToInt(s->s.x).max().getAsInt();
-        int sensorMaxY = sensorList.stream().mapToInt(s->s.y).max().getAsInt();
-        int beaconMaxX = beaconList.stream().mapToInt(b->b.x).max().getAsInt();
-        int beaconMaxY = beaconList.stream().mapToInt(b->b.y).max().getAsInt();
-        int width = GRID_OFFSET + Math.max(sensorMaxX, beaconMaxX);
-        int height = GRID_OFFSET + Math.max(sensorMaxY, beaconMaxY);
-
-        String[][] grid = new String[height][width];
-        for( int y = 0; y<grid.length; y++ ) {
-            for( int x = 0; x< grid[0].length; x++) {
-                grid[y][x] = ".";
-            }
-        }
-
-        for( int i=-0; i<sensorList.size(); i++) {
-            Sensor sensor = sensorList.get(i);
-            Beacon beacon = beaconList.get(i);
-            grid[sensor.y][sensor.x] = SENSOR;
-            grid[beacon.y][beacon.x] = BEACON;
-
-            int distance = sensor.distanceFrom(beacon);
-            for( int y = 0; y<grid.length; y++ ) {
-                for( int x = 0; x< grid[0].length; x++) {
-                    if( SENSOR.equals(grid[y][x]) || BEACON.equals(grid[y][x])) {
-                        //Skip
-                    }
-                    else if( distance >= sensor.distanceFrom(Point.of(x,y))) {
-                        grid[y][x] = NO_BEACON;
-                    }
                 }
             }
         }
 
-        return grid;
+        if (isPart2()) {
+            TreeMap<Point, Point> sensorsTree = new TreeMap<>();
+            TreeSet<Point> points = new TreeSet<Point>();
+
+            for( int i = 0; i<sensors.size(); i++) {
+                Point sensor = sensors.get(i);
+                Point beacon = beacons.get(i);
+                Point s = new Point(sensor.x, sensor.y);
+                Point b = new Point(beacon.x, beacon.y);
+                points.add(s);
+                points.add(b);
+                sensorsTree.put(s, b);
+            }
+
+            String lastResult = "";
+            for(Map.Entry<Point, Point> me : sensorsTree.entrySet())
+            {
+                Point s = me.getKey();
+                Point b = me.getValue();
+                long dist = s.getDistM(b);
+                String newResult = scanRing(s, dist, points, sensorsTree);
+                if(StringUtils.isNotEmpty(newResult)) {
+                    lastResult = newResult;
+                }
+            }
+            return lastResult;
+        }
+        return "" + answer;
     }
 
-    private static class Sensor extends Point {
+    public String scanRing(Point s, long ring, TreeSet<Point> points, TreeMap<Point, Point> sensorsTree)
+    {
+        long count = ring+1;
+        LinkedList<Point> dirs = new LinkedList<>();
+        dirs.add(new Point(1,1)); // down right
+        dirs.add(new Point(-1,1)); // down left
+        dirs.add(new Point(-1,-1)); // up left
+        dirs.add(new Point(1, -1)); //up right
 
-        Beacon beacon;
-        public Sensor(int x, int y) {
-            super(x,y);
-        }
+        Point cur = s.add(new Point(0, -ring-1));
 
-        public Sensor(int x, int y, Beacon beacon) {
-            super(x,y);
-            this.beacon = beacon;
-        }
+        String lastResult = "";
+        for(Point dir : dirs)
+            for(long step =0; step<count; step++)
+            {
+                cur = cur.add(dir);
+                if (!pointImpossible(cur, points, sensorsTree))
+                {
+                    System.out.println(cur);
+                    long n = cur.x * 4000000 + cur.y;
+                    lastResult = ""+n;
+                }
+            }
 
-        public static Sensor of(int x, int y) {
-            return new Sensor(x,y);
-        }
-
-        public static Sensor of(int x, int y, Beacon beacon) {
-            return new Sensor(x,y, beacon);
-        }
+        return lastResult;
     }
 
-    private static class Beacon extends Point {
+    public boolean pointImpossible(Point p, TreeSet<Point> points, TreeMap<Point, Point> sensorsTree)
+    {
+        if (p.x <= 0) return true;
+        if (p.y <= 0) return true;
+        if (p.x > 4000000) return true;
+        if (p.y > 4000000) return true;
 
-        public Beacon(int x, int y) {
-            super(x, y);
-        }
 
-        public static Beacon of(int x, int y) {
-            return new Beacon(x,y);
+        if (points.contains(p)) return true;
+
+        for(Map.Entry<Point, Point> me : sensorsTree.entrySet())
+        {
+            Point s = me.getKey();
+            Point b = me.getValue();
+            long dist = s.getDistM(b);
+            long d = p.getDistM(s);
+            if (d <= dist)
+            {
+                return true;
+            }
+
         }
+        return false;
+
     }
 
-    private static class Point {
-        int x;
-        int y;
-
-        public Point(int x, int y) {
-            this.x = x + GRID_OFFSET;
-            this.y = y + GRID_OFFSET;
+    public boolean checkPossible(int x, int y, List<Point> sensors, List<Integer> distances, int wiggle) {
+        for (int i = 0; i < sensors.size(); i++) {
+            if (Math.abs(x - sensors.get(i).x) + Math.abs(y - sensors.get(i).y) + wiggle <= distances.get(i)) {
+                return false;
+            }
         }
+        return true;
+    }
 
-        public static Point of(int x, int y) {
+
+    private static class Point implements Comparable<Point>
+    {
+        final long x;
+        final long y;
+        final long z;
+        final long w;
+
+        public static Point of(long x, long y) {
             return new Point(x,y);
         }
-
-        public int distanceFrom(Point p) {
-            return Math.abs(x-p.x) + Math.abs(y-p.y);
+        public static Point of(int x, int y) {
+            return new Point(Integer.valueOf(x).longValue(),Integer.valueOf(y).longValue());
+        }
+        public Point(long x, long y)
+        {
+            this(x,y,0L,0L);
+        }
+        public Point(long x, long y, long z)
+        {
+            this(x,y,z,0L);
+        }
+        public Point(long x, long y, long z, long w)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.w = w;
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Point point = (Point) o;
-            return x == point.x && y == point.y;
+        public String toString()
+        {
+            return String.format("(%d %d %d %d)", x,y, z, w);
         }
+
+        @Override
+        public int hashCode()
+        {
+            return toString().hashCode();
+        }
+
+        @Override
+        public boolean equals(Object o)
+        {
+            return toString().equals(o.toString());
+        }
+
+        @Override
+        public int compareTo(Point p)
+        {
+            if (x < p.x) return -1;
+            if (x > p.x) return 1;
+
+            if (y < p.y) return -1;
+            if (y > p.y) return 1;
+
+            if (z < p.z) return -1;
+            if (z > p.z) return 1;
+
+            if (w < p.w) return -1;
+            if (w > p.w) return 1;
+
+            return 0;
+        }
+
+        public Point add(Point p)
+        {
+            return new Point(x + p.x, y +  p.y, z+p.z, w+p.w);
+        }
+        public Point mult(long m)
+        {
+            return new Point(x * m, y * m, z * m, w * m);
+        }
+
+        public long getDistM(Point p)
+        {
+            long dx=Math.abs(p.x - x);
+            long dy=Math.abs(p.y - y);
+            long dz=Math.abs(p.z - z);
+            long dw=Math.abs(p.w - w);
+
+            return dx+dy+dz+dw;
+
+        }
+
+
     }
 
 }
