@@ -12,11 +12,17 @@ class Day17Test {
 
 
     @Test
+    void test() {
+        Day17.Rock rock = Day17.Rock.e();
+        System.out.println(rock);
+    }
+
+    @Test
     void run_part1_sample() {
         Day17 day = new Day17(SAMPLE_INPUT, Part.PART_ONE);
         String result = day.run();
         System.out.println("result= " + result);
-        assertEquals(0, Integer.valueOf(result));
+        assertEquals(3068, Integer.valueOf(result));
     }
 
     @Test
@@ -24,22 +30,24 @@ class Day17Test {
         Day17 day = new Day17(INPUT, Part.PART_ONE);
         String result = day.run();
         System.out.println("result= " + result);
-        assertEquals(0, Integer.valueOf(result));
+        assertEquals(3175, Integer.valueOf(result));
     }
 
     @Test
     void run_part2_sample() {
         Day17 day = new Day17(SAMPLE_INPUT, Part.PART_TWO);
+        day.iterations = Long.valueOf("1000000000000");
         String result = day.run();
         System.out.println("result= " + result);
-        assertEquals(0, Integer.valueOf(result));
+        assertEquals("1514285714288", result);
     }
 
     @Test
     void run_part2() {
         Day17 day = new Day17(INPUT, Part.PART_TWO);
+        day.iterations = Long.valueOf("1000000000000");
         String result = day.run();
         System.out.println("result= " + result);
-        assertEquals(0, Integer.valueOf(result));
+        assertEquals("1514285714288", result);
     }
 }
