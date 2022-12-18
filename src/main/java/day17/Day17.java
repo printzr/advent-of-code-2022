@@ -123,6 +123,7 @@ public class Day17 extends AdventOfCodeBase {
 
             if( isPart2() && i > 3000){
 
+                //TODO Figure out
                 System.out.println("i = " + i);
                 String[][] pattern = findPattern(grid);
                 if( pattern != null ) {
