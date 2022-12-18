@@ -23,7 +23,7 @@ public class Day17 extends AdventOfCodeBase {
 
     public long iterations = 2022;
 
-    public static boolean DEBUG = false;
+    public static boolean DEBUG = true;
 
     @Override
     public String run() {
@@ -32,7 +32,7 @@ public class Day17 extends AdventOfCodeBase {
         String input = lines.get(0);
         char[] jetPattern = input.toCharArray();
         List<Rock> rockOrder = List.of(Rock.a(), Rock.b(), Rock.c(), Rock.d(), Rock.e());
-        int height = 5000;
+        int height = 1000000;
         int arrayChompValue = 4000;
         String[][] grid = new String[height][9];
         Arrays.fill(grid[height-1],DASH);
@@ -101,26 +101,39 @@ public class Day17 extends AdventOfCodeBase {
                 rockTypePosition = 0;
             }
 
+
+
             //If grid height > 50 chomp and store
-            int currentRockHeight = (height-getFloor(grid)-1);
-//            System.out.println("currentRockHeight = " + currentRockHeight);
-            if( currentRockHeight > arrayChompValue ){
-                gridCopies++;
-                int floor = getFloor(grid);
-                String[][] copyGrid = new String[height][9];
-                for( int y = 0; y<1000L; y++) {
-                    copyGrid[y]=newRow();
+//            int currentRockHeight = (height-getFloor(grid)-1);
+////            System.out.println("currentRockHeight = " + currentRockHeight);
+//            if( currentRockHeight > arrayChompValue ){
+//                gridCopies++;
+//                int floor = getFloor(grid);
+//                String[][] copyGrid = new String[height][9];
+//                for( int y = 0; y<1000L; y++) {
+//                    copyGrid[y]=newRow();
+//                }
+//                int gridPosition = 1000;
+//                for( int y = floor; y<(floor+4000); y++ ) {
+//                    copyGrid[gridPosition] = grid[y];
+//                    gridPosition++;
+//                }
+//                grid = copyGrid;
+//            }
+
+            if( isPart2() && i > 3000){
+
+                System.out.println("i = " + i);
+                String[][] pattern = findPattern(grid);
+                if( pattern != null ) {
+                    System.out.println("Pattern found");
                 }
-                int gridPosition = 1000;
-                for( int y = floor; y<(floor+4000); y++ ) {
-                    copyGrid[gridPosition] = grid[y];
-                    gridPosition++;
+                if( i % 1000 == 0 ){
+                    System.out.println("i = " + i);
                 }
-                grid = copyGrid;
             }
-
-
         }
+        System.out.println(gridToString(grid));
         System.out.println("gridCopies = " + gridCopies);
         System.out.println("getFloor(grid) = " + getFloor(grid));
         System.out.println("height = " + height);
@@ -130,6 +143,31 @@ public class Day17 extends AdventOfCodeBase {
         Long copiesHeight = copiesLong*1000L;
         return "" + (copiesHeight+Long.valueOf((height-getFloor(grid)-1)));
     }
+
+    private String[][] findPattern(String[][] grid) {
+
+        int floor = getFloor(grid)-1;
+        if( floor % 2 > 0 ) {
+            return null;
+        }
+
+        int firstHalfLength = floor/2;
+
+        String[][] pattern = new String[firstHalfLength][9];
+        for( int y = 1; y<firstHalfLength; y++) {
+            pattern[y] = grid[y];
+            for( int x = 0; x<9; x++) {
+                String val1 = grid[y][x];
+                String val2 = grid[y * 2][x * 2];
+                if (!val1.equals(val2)) {
+                    return null;
+                }
+            }
+        }
+        return pattern;
+    }
+
+
 
     private int getNexJetPosition( int currentJetPosition, char[] jetPattern) {
         int newJetPosition = currentJetPosition;
