@@ -49,6 +49,7 @@ class Day18Test {
         String result = day.run();
         System.out.println("result= " + result);
         assertEquals(0, Integer.valueOf(result));
+        //4010 too high
     }
 
 }
